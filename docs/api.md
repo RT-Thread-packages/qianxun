@@ -1,11 +1,12 @@
 # QXWZ_SDK API 介绍
 
-##  int start_uart(char* uart,char* file,uart_cb uart_rsp)
+##  int start_uart(char* uart, char* file, uart_cb uart_rsp, lcd_cb lcd_rsp)
 |**参数**                           |**描述**|
 |:-----                             |:----|
 |uart                               |串口信息，采用哪个串口和MC110M连接，该参数就采用哪个串口，例如"uart3"|
 |file                               |表示高精度定位输出数据文件，高精度定位输出除了在屏幕显示以外，还保存在该文件中，确保该文件可读可写，例如"/qxwz_report.txt"|
 |uart_rsp                           |表示串口输出回调函数指针，SDK将通过该回调接口上报原始GGA数据给用户。用户通过该接口获取到原始GGA后，需要将该数据上报给千寻服务器，获取差分数据下发。格式参考qxwz_api.h头文件|
+|lcd_rsp                           |表示屏幕打印函数指针，SDK将通过该回调接口上报高精度GGA数据给用户。用户通过该接口获取到原始GGA后，可自行编写屏幕打印函数显示高精度定位结果。格式参考qxwz_api.h头文件|
 |return                             |0 : 成功; 其他 : 失败|
 
 

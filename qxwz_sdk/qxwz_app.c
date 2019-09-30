@@ -1,5 +1,4 @@
 #include <rtthread.h>
-#include <drv_lcd.h>
 #include <dfs_fs.h>
 #include <dfs_posix.h>
 #include "qxwz_types.h"
@@ -16,6 +15,7 @@ static char report_gga[256] = {0};
 static char gga[256] = {0};
 
 static uart_cb s_uart_rsp = NULL;
+static lcd_cb s_lcd_rsp = NULL;
 
 typedef enum  {
     NONE,
@@ -147,7 +147,7 @@ static void serial_thread_entry(void *parameter)
                     rt_mutex_release(dynamic_mutex);
                     s_uart_rsp(gga,strlen(gga));
                     ret_w = write(fd, gga,strlen(gga));
-                    print2lcd(gga);
+                    s_lcd_rsp(gga);
                     rt_sem_take(&rx_sem, RT_WAITING_FOREVER);                            
                 }
                 ret = -1;
@@ -158,63 +158,13 @@ static void serial_thread_entry(void *parameter)
     close(fd);
 }
 
-static int print2lcd(char* input_buf)
-{
-    int i = 0;
-    char* p_for =NULL;
-    char* p_tmp =NULL;
-    char* p_lati =NULL;
-    char* p_long =NULL;
-    char* p_loc_accu =NULL;
-    char buf[10];
-    char outbuf[100];
-    lcd_clear(WHITE);
 
-    lcd_set_color(WHITE, BLACK);
-
-    lcd_show_string(10, 69, 16, input_buf);
-    p_lati = strstr(strstr(gga,",")+1,",")+1;
-    p_tmp = strstr(p_lati,",");
-    memset(buf,0,10);
-    p_for = p_lati;
-    for(i = 0;i<p_tmp-p_lati;i++){      
-        buf[i] =*p_for;
-        p_for++;
-    }
-    memset(outbuf,0,100);
-    sprintf(outbuf,"latitude:%s",buf);
-    lcd_show_string(10, 69+16+8+16+24, 16, outbuf);
-    p_long = strstr(p_lati,"N,")+2;
-    p_tmp = strstr(p_long,",");
-    memset(buf,0,10);
-    p_for = p_long;
-    for(i = 0;i<p_tmp-p_long;i++){      
-        buf[i] =*p_for;
-        p_for++;
-    }
-    memset(outbuf,0,100);
-    sprintf(outbuf,"longitude:%s",buf);
-    lcd_show_string(10, 69+8+16+16+24+24, 16, outbuf);
-    p_loc_accu = strstr(p_long,"E,")+2;
-    p_tmp = strstr(p_loc_accu,",");
-    memset(buf,0,10);
-    p_for = p_loc_accu;
-    for(i = 0;i<p_tmp-p_loc_accu;i++){      
-        buf[i] =*p_for;
-        p_for++;
-    }
-    memset(outbuf,0,100);
-    sprintf(outbuf,"qx_loca_accuracy:%s",buf);
-    lcd_show_string(10, 69+8+16+16+24+24+24, 16, outbuf);
-    return 0;
-}
-
-int start_uart(char* uart,char* file,uart_cb uart_rsp)
+int start_uart(char* uart,char* file,uart_cb uart_rsp,lcd_cb lcd_rsp)
 {
     rt_err_t ret = RT_EOK;
-    if ((NULL == uart)||(NULL == file)||(NULL == uart_rsp))
+    if ((NULL == uart)||(NULL == file)||(NULL == uart_rsp)||(NULL == lcd_rsp))
     {
-        rt_kprintf("start_uart para uart or file or uart_rsp is NULL\n");
+        rt_kprintf("start_uart para uart or file or uart_rsp or lcd_rsp is NULL\n");
         return RT_ERROR;
     }
     char* uart_name = uart;
@@ -226,6 +176,7 @@ int start_uart(char* uart,char* file,uart_cb uart_rsp)
         return RT_ERROR;
     }
     s_uart_rsp = uart_rsp;
+    s_lcd_rsp = lcd_rsp;
     rt_sem_init(&rx_sem, "rx_sem", 0, RT_IPC_FLAG_FIFO);
 
     rt_device_open(serial, RT_DEVICE_FLAG_INT_RX);

@@ -7,6 +7,7 @@
 #include "qxwz_types.h"
 #include "qxwz_sdk.h"
 #include "qxwz_api.h"
+#include <drv_lcd.h>
 
 #define SAMPLE_UART_NAME       "uart3"
 
@@ -22,6 +23,7 @@ static int report_flag;
 static int stopflag;
 
 static void report_gga(char *gga, qxwz_u32_t len);
+static void print2lcd(char* input_buf);
 
 static void receive_iprtcm(qxwz_void_t *rtcm, qxwz_u32_t len, qxwz_data_type_e type)
 {
@@ -39,7 +41,7 @@ static void receive_status(qxwz_s32_t status)
     if(1007 == status)
     {
         report_flag =1;
-        start_uart(SAMPLE_UART_NAME,file,report_gga);
+        start_uart(SAMPLE_UART_NAME,file,report_gga,print2lcd);
     }
 }
 
@@ -65,6 +67,56 @@ static const qxwz_usr_config_t s_config = {
     "",
     ""
 };
+
+static void print2lcd(char* input_buf)
+{
+    int i = 0;
+    char* p_for =NULL;
+    char* p_tmp =NULL;
+    char* p_lati =NULL;
+    char* p_long =NULL;
+    char* p_loc_accu =NULL;
+    char buf[10];
+    char outbuf[100];
+    lcd_clear(WHITE);
+
+    lcd_set_color(WHITE, BLACK);
+
+    lcd_show_string(10, 69, 16, input_buf);
+    p_lati = strstr(strstr(input_buf,",")+1,",")+1;
+    p_tmp = strstr(p_lati,",");
+    memset(buf,0,10);
+    p_for = p_lati;
+    for(i = 0;i<p_tmp-p_lati;i++){
+        buf[i] =*p_for;
+        p_for++;
+    }
+    memset(outbuf,0,100);
+    sprintf(outbuf,"latitude:%s",buf);
+    lcd_show_string(10, 69+16+8+16+24, 16, outbuf);
+    p_long = strstr(p_lati,"N,")+2;
+    p_tmp = strstr(p_long,",");
+    memset(buf,0,10);
+    p_for = p_long;
+    for(i = 0;i<p_tmp-p_long;i++){
+        buf[i] =*p_for;
+        p_for++;
+    }
+    memset(outbuf,0,100);
+    sprintf(outbuf,"longitude:%s",buf);
+    lcd_show_string(10, 69+8+16+16+24+24, 16, outbuf);
+    p_loc_accu = strstr(p_long,"E,")+2;
+    p_tmp = strstr(p_loc_accu,",");
+    memset(buf,0,10);
+    p_for = p_loc_accu;
+    for(i = 0;i<p_tmp-p_loc_accu;i++){
+        buf[i] =*p_for;
+        p_for++;
+    }
+    memset(outbuf,0,100);
+    sprintf(outbuf,"qx_loca_accuracy:%s",buf);
+    lcd_show_string(10, 69+8+16+16+24+24+24, 16, outbuf);
+}
 
 int qxwz_application(void)
 {  
@@ -114,3 +166,5 @@ int qxwz_application(void)
     qxwz_release();
     return 0;
 }
+
+
